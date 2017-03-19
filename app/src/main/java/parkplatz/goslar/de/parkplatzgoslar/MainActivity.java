@@ -12,10 +12,14 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
-public class MainActivity extends AppCompatActivity implements LocationListener {
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity implements LocationListener, CompoundButton.OnCheckedChangeListener {
 
     private static final String[] LOCATION_PERMS={
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -25,24 +29,78 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private static final int LOCATION_REQUEST=INITIAL_REQUEST+1;
 
     private LocationManager locationManager;
+    private ArrayList<Location> locations;
 
-    private TextView txtLatitude;
-    private TextView txtLongitude;
+    private ToggleButton toggleButton;
+    private TextView logView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        txtLatitude = (TextView)findViewById(R.id.txtLat);
-        txtLongitude = (TextView)findViewById(R.id.txtLon);
+        locations = new ArrayList<Location>();
 
-        if (!canAccessLocation()) {
-            ActivityCompat.requestPermissions(this, LOCATION_PERMS, INITIAL_REQUEST);
-        }
-        else {
+        toggleButton = (ToggleButton) findViewById(R.id.toggleButton);
+        toggleButton.setChecked(false);
+        toggleButton.setOnCheckedChangeListener(this);
+
+        logView = (TextView) findViewById(R.id.logView);
+        logView.setText("");
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (isChecked)
+        {
             startTracking();
         }
+        else
+        {
+            stopTracking();
+        }
+    }
+
+    private void startTracking()
+    {
+        if (!canAccessLocation()) {
+            addLogLine("Requesting GPS permission");
+            ActivityCompat.requestPermissions(this, LOCATION_PERMS, INITIAL_REQUEST);
+            return;
+        }
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        try
+        {
+            addLogLine("Requesting GPS updates...");
+            locationManager.requestLocationUpdates( LocationManager.GPS_PROVIDER,
+                    2000,
+                    10, this);
+        }
+        catch (SecurityException exception)
+        {
+            addLogLine("GPS exception: " + exception.getLocalizedMessage());
+        }
+    }
+
+    private void stopTracking()
+    {
+        locationManager.removeUpdates(this);
+        addLogLine("Stopped GPS updates");
+        sendLocationsToServer();
+    }
+
+    private void sendLocationsToServer()
+    {
+        if (locations.size() == 0)
+        {
+            addLogLine("No locations tracked. Skipping server communication.");
+            return;
+        }
+
+        addLogLine("Trying to send " + locations.size() + " GPS point(s) to server.");
+
     }
 
     @Override
@@ -52,10 +110,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
             case LOCATION_REQUEST:
                 if (canAccessLocation()) {
+                    addLogLine("GPS permission granted");
                     startTracking();
                 }
                 else {
-
+                    addLogLine("GPS permission not granted");
                 }
                 break;
         }
@@ -69,46 +128,33 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         return(PackageManager.PERMISSION_GRANTED== ContextCompat.checkSelfPermission(getBaseContext(), perm));
     }
 
-    private void startTracking()
-    {
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        try
-        {
-            locationManager.requestLocationUpdates( LocationManager.GPS_PROVIDER,
-                    2000,
-                    10, this);
-        }
-        catch (SecurityException exception)
-        {
-            Toast.makeText(getBaseContext(), exception.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
     @Override
     public void onLocationChanged(Location location) {
-        String msg = "New Latitude: " + location.getLatitude()
-                + "New Longitude: " + location.getLongitude();
+        locations.add(location);
 
-        Toast.makeText(getBaseContext(), msg, Toast.LENGTH_LONG).show();
+        String msg = String.format("New GPS point: %.1f, %.1f", location.getLatitude(), location.getLongitude());
+        addLogLine(msg);
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-
+        addLogLine("Gps status: " + status);
     }
 
     @Override
     public void onProviderEnabled(String provider) {
-        Toast.makeText(getBaseContext(), "Gps is turned on!! ",
-                Toast.LENGTH_SHORT).show();
+        addLogLine("Gps is enabled!");
     }
 
     @Override
     public void onProviderDisabled(String provider) {
+        addLogLine("Gps is disabled!");
         Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         startActivity(intent);
-        Toast.makeText(getBaseContext(), "Gps is turned off!! ",
-                Toast.LENGTH_SHORT).show();
+    }
+
+    private void addLogLine(String text)
+    {
+        logView.append("\n" + text);
     }
 }

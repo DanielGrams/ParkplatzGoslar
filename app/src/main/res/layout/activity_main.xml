@@ -6,24 +6,31 @@
     android:layout_height="match_parent"
     tools:context="parkplatz.goslar.de.parkplatzgoslar.MainActivity">
 
-    <TextView
-        android:id="@+id/txtLat"
+    <ToggleButton
+        android:id="@+id/toggleButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Latitude"
+        android:checked="false"
+        android:text="ToggleButton"
+        android:textOff="Start"
+        android:textOn="Stop"
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="8dp"
+        android:layout_marginRight="8dp"
+        app:layout_constraintRight_toRightOf="parent"
         android:layout_marginLeft="8dp"
         app:layout_constraintLeft_toLeftOf="parent" />
 
     <TextView
-        android:id="@+id/txtLon"
-        android:layout_width="wrap_content"
+        android:id="@+id/logView"
+        android:layout_width="368dp"
         android:layout_height="wrap_content"
-        android:text="Longitude"
-        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
-        android:layout_marginRight="8dp"
-        app:layout_constraintRight_toRightOf="parent" />
-
+        android:singleLine="false"
+        android:text="Zeile 1\nZeile 2\nZeile 3"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toggleButton"
+        app:layout_constraintVertical_bias="0.0"
+        tools:layout_editor_absoluteX="8dp" />
 </android.support.constraint.ConstraintLayout>
